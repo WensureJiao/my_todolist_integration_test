@@ -1,3 +1,4 @@
+import 'package:demo/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,13 +9,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('TodoListPage 关键逻辑测试', () {
+    //setUp() 里的代码会在每个testwidget测试前执行，保证测试环境一致。
     setUp(() async {
       SharedPreferences.setMockInitialValues({}); // 清空 SharedPreferences
     });
 
     // ---------- 添加 Todo ----------
     testWidgets('添加 Todo 正向', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(FloatingActionButton));
@@ -28,7 +30,7 @@ void main() {
     });
 
     testWidgets('添加 Todo 反向（空标题）', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(FloatingActionButton));
@@ -43,7 +45,7 @@ void main() {
 
     // ---------- 删除 Todo ----------
     testWidgets('删除 Todo 正向', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       // 添加 Todo
@@ -66,7 +68,7 @@ void main() {
     });
 
     testWidgets('删除 Todo 反向（空列表删除）', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       // 尝试点击删除按钮，但列表为空，不会报错
@@ -75,7 +77,7 @@ void main() {
 
     // ---------- 排序 ----------
     testWidgets('排序 Todo 正向', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       // 添加两个 Todo
@@ -100,7 +102,7 @@ void main() {
     });
 
     testWidgets('排序 Todo 反向（空列表排序）', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       // 列表为空，排序按钮不会显示
@@ -109,7 +111,7 @@ void main() {
 
     // ---------- 修改状态 ----------
     testWidgets('修改 Todo 状态 正向', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(FloatingActionButton));
@@ -127,7 +129,7 @@ void main() {
     });
 
     testWidgets('修改 Todo 状态 反向（列表为空）', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TodoListPage()));
+      await tester.pumpWidget(const MaterialApp(home: TodoApp()));
       await tester.pumpAndSettle();
 
       // 空列表，没有状态下拉

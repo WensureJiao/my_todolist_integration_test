@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  group('TODO List 集成测试（慢速模式，每步 1 秒延迟）', () {
+  group('TODO List 集成测试', () {
     testWidgets('添加、编辑、删除、排序 todo 测试', (WidgetTester tester) async {
       // 启动 app
       SharedPreferences.setMockInitialValues({}); // 清空本地数据模拟

@@ -1,3 +1,4 @@
+// pages/todo_edit_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
@@ -6,7 +7,8 @@ class TodoEditPage extends StatefulWidget {
   final Todo? todo;
   final ValueChanged<Todo> onSave;
 
-  const TodoEditPage({Key? key, this.todo, required this.onSave}) : super(key: key);
+  const TodoEditPage({Key? key, this.todo, required this.onSave})
+    : super(key: key);
 
   @override
   State<TodoEditPage> createState() => _TodoEditPageState();
@@ -49,14 +51,21 @@ class _TodoEditPageState extends State<TodoEditPage> {
     );
     if (time == null) return;
 
-    final pickedDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);//它的作用就是 把一个日期对象的年月日 和 一个时间对象的时分 组合成一个完整的 DateTime。
+    final pickedDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
     setState(() {
-      if (isStart) {//isStart为true说明是start time
+      if (isStart) {
         startTime = pickedDateTime;
         if (endTime != null && endTime!.isBefore(startTime!)) {
           endTime = startTime;
         }
-      } else {//说明是end time
+      } else {
         if (startTime != null && pickedDateTime.isBefore(startTime!)) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('End time must be after start time')),
@@ -70,29 +79,34 @@ class _TodoEditPageState extends State<TodoEditPage> {
 
   void _save() {
     if (titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Title is required')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Title is required')));
       return;
     }
     final todo = Todo(
       title: titleController.text,
-      subtitle: subtitleController.text.isEmpty ? null : subtitleController.text,
-      description: descriptionController.text.isEmpty ? null : descriptionController.text,
+      subtitle: subtitleController.text.isEmpty
+          ? null
+          : subtitleController.text,
+      description: descriptionController.text.isEmpty
+          ? null
+          : descriptionController.text,
       startTime: startTime,
       endTime: endTime,
-      status: widget.todo?.status ?? TodoStatus.waiting,
+      status: status,
     );
-    widget.onSave(todo);
-    Navigator.pop(context);
+    widget.onSave(todo); // 由外部处理 Navigator.pop
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.todo == null ? 'Add TODO' : 'Edit TODO')),
+      appBar: AppBar(
+        title: Text(widget.todo == null ? 'Add TODO' : 'Edit TODO'),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
             TextField(
@@ -101,35 +115,50 @@ class _TodoEditPageState extends State<TodoEditPage> {
             ),
             TextField(
               controller: subtitleController,
-              decoration: const InputDecoration(labelText: 'Subtitle (optional)'),
+              decoration: const InputDecoration(
+                labelText: 'Subtitle (optional)',
+              ),
             ),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: Text(startTime == null ? 'No start time' : 'Start: ${DateFormat('yyyy-MM-dd HH:mm').format(startTime!)}'),
+                  child: Text(
+                    startTime == null
+                        ? 'No start time'
+                        : 'Start: ${DateFormat('yyyy-MM-dd HH:mm').format(startTime!)}',
+                  ),
                 ),
-                ElevatedButton(onPressed: () => _pickDateTime(true), child: const Text('Pick Start')),
+                ElevatedButton(
+                  onPressed: () => _pickDateTime(true),
+                  child: const Text('Pick Start'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
-                  child: Text(endTime == null ? 'No end time' : 'End: ${DateFormat('yyyy-MM-dd HH:mm').format(endTime!)}'),
+                  child: Text(
+                    endTime == null
+                        ? 'No end time'
+                        : 'End: ${DateFormat('yyyy-MM-dd HH:mm').format(endTime!)}',
+                  ),
                 ),
-                ElevatedButton(onPressed: () => _pickDateTime(false), child: const Text('Pick End')),
+                ElevatedButton(
+                  onPressed: () => _pickDateTime(false),
+                  child: const Text('Pick End'),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _save,
-              child: const Text('Save'),
-            ),
+            ElevatedButton(onPressed: _save, child: const Text('Save')),
           ],
         ),
       ),

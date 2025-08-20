@@ -20,7 +20,7 @@ void main() {
 
       // 点击 Save
       await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(); //持续调用 pump()，直到没有动画或微任务在进行，界面稳定为止。
 
       // 断言回调返回的 Todo
       expect(savedTodo.title, '新 Todo');
