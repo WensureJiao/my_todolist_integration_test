@@ -1,9 +1,8 @@
-// pages/todo_edit_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
 
-class TodoEditPage extends StatefulWidget {
+class TodoEditPage extends StatelessWidget {
   final Todo? todo;
   final ValueChanged<Todo> onSave;
 
@@ -11,55 +10,42 @@ class TodoEditPage extends StatefulWidget {
     : super(key: key);
 
   @override
-  State<TodoEditPage> createState() => _TodoEditPageState();
-}
-
-class _TodoEditPageState extends State<TodoEditPage> {
-  final titleController = TextEditingController();
-  final subtitleController = TextEditingController();
-  final descriptionController = TextEditingController();
-  DateTime? startTime;
-  DateTime? endTime;
-  TodoStatus status = TodoStatus.waiting;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.todo != null) {
-      titleController.text = widget.todo!.title;
-      subtitleController.text = widget.todo!.subtitle ?? '';
-      descriptionController.text = widget.todo!.description ?? '';
-      startTime = widget.todo!.startTime;
-      endTime = widget.todo!.endTime;
-      status = widget.todo!.status;
-    }
-  }
-
-  Future<void> _pickDateTime(bool isStart) async {
-    final now = DateTime.now();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+  Widget build(BuildContext context) {
+    final titleController = TextEditingController(text: todo?.title ?? '');
+    final subtitleController = TextEditingController(
+      text: todo?.subtitle ?? '',
     );
-    if (date == null) return;
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(now),
+    final descriptionController = TextEditingController(
+      text: todo?.description ?? '',
     );
-    if (time == null) return;
+    DateTime? startTime = todo?.startTime;
+    DateTime? endTime = todo?.endTime;
+    TodoStatus status = todo?.status ?? TodoStatus.waiting;
 
-    final pickedDateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
+    Future<void> pickDateTime(bool isStart) async {
+      final now = DateTime.now();
+      final date = await showDatePicker(
+        context: context,
+        initialDate: now,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (date == null) return;
 
-    setState(() {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(now),
+      );
+      if (time == null) return;
+
+      final pickedDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+
       if (isStart) {
         startTime = pickedDateTime;
         if (endTime != null && endTime!.isBefore(startTime!)) {
@@ -74,37 +60,32 @@ class _TodoEditPageState extends State<TodoEditPage> {
         }
         endTime = pickedDateTime;
       }
-    });
-  }
-
-  void _save() {
-    if (titleController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Title is required')));
-      return;
     }
-    final todo = Todo(
-      title: titleController.text,
-      subtitle: subtitleController.text.isEmpty
-          ? null
-          : subtitleController.text,
-      description: descriptionController.text.isEmpty
-          ? null
-          : descriptionController.text,
-      startTime: startTime,
-      endTime: endTime,
-      status: status,
-    );
-    widget.onSave(todo); // 由外部处理 Navigator.pop
-  }
 
-  @override
-  Widget build(BuildContext context) {
+    void save() {
+      if (titleController.text.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Title is required')));
+        return;
+      }
+      final newTodo = Todo(
+        title: titleController.text,
+        subtitle: subtitleController.text.isEmpty
+            ? null
+            : subtitleController.text,
+        description: descriptionController.text.isEmpty
+            ? null
+            : descriptionController.text,
+        startTime: startTime,
+        endTime: endTime,
+        status: status,
+      );
+      onSave(newTodo);
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.todo == null ? 'Add TODO' : 'Edit TODO'),
-      ),
+      appBar: AppBar(title: Text(todo == null ? 'Add TODO' : 'Edit TODO')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
@@ -136,7 +117,7 @@ class _TodoEditPageState extends State<TodoEditPage> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () => _pickDateTime(true),
+                  onPressed: () => pickDateTime(true),
                   child: const Text('Pick Start'),
                 ),
               ],
@@ -152,13 +133,13 @@ class _TodoEditPageState extends State<TodoEditPage> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () => _pickDateTime(false),
+                  onPressed: () => pickDateTime(false),
                   child: const Text('Pick End'),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _save, child: const Text('Save')),
+            ElevatedButton(onPressed: save, child: const Text('Save')),
           ],
         ),
       ),

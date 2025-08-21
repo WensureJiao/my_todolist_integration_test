@@ -1,54 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/todo_list_page.dart';
 import 'pages/todo_setting_page.dart';
-
-// 全局 notifier 用于刷新 List
-final ValueNotifier<int> todoNotifier = ValueNotifier<int>(0);
+import 'riverpod_main.dart';
 
 void main() {
-  runApp(const TodoApp());
+  runApp(const ProviderScope(child: TodoApp()));
 }
 
-class TodoApp extends StatefulWidget {
+class TodoApp extends ConsumerStatefulWidget {
   const TodoApp({Key? key}) : super(key: key);
 
   @override
-  State<TodoApp> createState() => _TodoAppState();
+  ConsumerState<TodoApp> createState() => _TodoAppState();
 }
 
-class _TodoAppState extends State<TodoApp> {
-  ThemeMode _themeMode = ThemeMode.light; //默认亮色主题
-  int _currentIndex = 0; //默认初始显示todolist页面
-
-  void _toggleTheme() {
-    // 切换主题
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.light
-          ? ThemeMode.dark
-          : ThemeMode.light;
-    });
-  }
+class _TodoAppState extends ConsumerState<TodoApp> {
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       title: 'Todo List',
       debugShowCheckedModeBanner: false,
-      themeMode: _themeMode,
+      themeMode: themeMode,
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       home: Scaffold(
         body: IndexedStack(
-          // 使用 IndexedStack 来切换页面
-          index:
-              _currentIndex, // 根据 _currentIndex 切换页面，0表示 TodoListPage，1 表示 SettingPage
-          children: [
-            TodoListPage(todoNotifier: todoNotifier),
-            SettingPage(
-              refreshNotifier: todoNotifier,
-              onToggleTheme: _toggleTheme,
-            ),
-          ],
+          index: _currentIndex,
+          children: const [TodoListPage(), SettingPage()],
         ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,

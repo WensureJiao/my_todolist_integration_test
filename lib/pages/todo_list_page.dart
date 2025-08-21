@@ -1,157 +1,85 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
+import '../riverpod_main.dart';
 import 'todo_edit_page.dart';
 import 'package:intl/intl.dart';
 
-enum SortType { title, startTime, status }
-
-class TodoListPage extends StatefulWidget {
-  final ValueNotifier<int> todoNotifier; // 用于批量刷新
-  const TodoListPage({Key? key, required this.todoNotifier}) : super(key: key);
+class TodoListPage extends ConsumerWidget {
+  const TodoListPage({Key? key}) : super(key: key);
 
   @override
-  State<TodoListPage> createState() => _TodoListPageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todos = ref.watch(todosProvider);
+    final sortType = ref.watch(sortProvider);
+    final themeMode = ref.watch(themeProvider); // 监听主题
 
-class _TodoListPageState extends State<TodoListPage> {
-  List<Todo> _todos = [];
-  SortType _sortType = SortType.title;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTodos();
-    widget.todoNotifier.addListener(
-      () => _loadTodos(),
-    ); //给valueNotifier添加监听器,当value改变时触发_loadTodos
-  }
-
-  Future<void> _loadTodos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final todosJson = prefs.getStringList('todos') ?? [];
-    setState(() {
-      _todos = todosJson.map((e) => Todo.fromJson(jsonDecode(e))).toList();
-      _sortTodos();
-    });
-  }
-
-  Future<void> _saveTodos() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      'todos',
-      _todos.map((e) => jsonEncode(e.toJson())).toList(),
-    );
-  }
-
-  void _sortTodos() {
-    _todos.sort((a, b) {
-      switch (_sortType) {
-        case SortType.title:
-          return a.title.compareTo(b.title);
-        case SortType.startTime:
-          return (a.startTime ?? DateTime(2100)).compareTo(
-            b.startTime ?? DateTime(2100),
-          );
-        case SortType.status:
-          return a.status.index.compareTo(b.status.index);
+    Color statusColor(TodoStatus status) {
+      final isDark = themeMode == ThemeMode.dark;
+      switch (status) {
+        case TodoStatus.waiting:
+          return isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+        case TodoStatus.progress:
+          return isDark ? Colors.blue.shade700 : Colors.blue.shade300;
+        case TodoStatus.done:
+          return isDark ? Colors.green.shade700 : Colors.green.shade300;
       }
-    });
-  }
-
-  void _changeSort(SortType type) {
-    setState(() {
-      _sortType = type;
-      _sortTodos();
-    });
-  }
-
-  // 根据状态和主题返回背景颜色
-  Color _statusColor(TodoStatus status) {
-    final brightness = Theme.of(context).brightness; // 获取当前主题亮度
-    switch (status) {
-      case TodoStatus.waiting:
-        return brightness ==
-                Brightness
-                    .dark //判断当前的主题亮度
-            ? Colors
-                  .grey
-                  .shade700 // 深色主题灰色
-            : Colors.grey.shade300; // 浅色主题灰色
-      case TodoStatus.progress:
-        return brightness == Brightness.dark
-            ? Colors.blue.shade700
-            : Colors.blue.shade300;
-      case TodoStatus.done:
-        return brightness == Brightness.dark
-            ? Colors.green.shade700
-            : Colors.green.shade300;
     }
-  }
 
-  // 根据主题返回字体颜色
-  Color _textColor() {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black;
-  }
+    Color textColor() {
+      return themeMode == ThemeMode.dark ? Colors.white : Colors.black;
+    }
 
-  void _editTodo(int index) async {
-    final edited = await Navigator.push<Todo>(
-      //<Todo> 表示：当这个页面关闭时，会返回一个 Todo 类型的对象。
-      context,
-      MaterialPageRoute(
-        builder: (_) => TodoEditPage(
-          todo: _todos[index],
-          onSave: (t) => Navigator.pop(context, t),
+    void changeSort(SortType type) {
+      ref.read(sortProvider.notifier).state = type;
+      ref.read(todosProvider.notifier).sortTodos(type);
+    }
+
+    void addTodo() async {
+      final newTodo = await Navigator.push<Todo>(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              TodoEditPage(onSave: (t) => Navigator.pop(context, t)),
         ),
-      ),
-    );
-    if (edited != null) {
-      // 只要用户点击了save，就会返回一个非null的Todo对象
-      // 更新列表中的 Todo
-      setState(() {
-        _todos[index] = edited;
-        _sortTodos();
-      });
-      _saveTodos();
+      );
+      if (newTodo != null) {
+        ref.read(todosProvider.notifier).addTodo(newTodo);
+      }
     }
-  }
 
-  void _deleteTodo(int index) async {
-    setState(() => _todos.removeAt(index));
-    await _saveTodos();
-  }
-
-  void _addTodo() async {
-    final newTodo = await Navigator.push<Todo>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TodoEditPage(onSave: (t) => Navigator.pop(context, t)),
-      ),
-    );
-    if (newTodo != null) {
-      setState(() => _todos.add(newTodo));
-      _saveTodos();
+    void editTodo(int index, Todo todo) async {
+      final edited = await Navigator.push<Todo>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TodoEditPage(
+            todo: todo,
+            onSave: (t) => Navigator.pop(context, t),
+          ),
+        ),
+      );
+      if (edited != null) {
+        ref.read(todosProvider.notifier).updateTodo(index, edited);
+      }
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
+    void deleteTodo(int index) async {
+      ref.read(todosProvider.notifier).deleteTodo(index);
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('TODO List - Sort: ${_sortType.name}'),
+        title: Text('TODO List - Sort: ${sortType.name}'),
         actions: [
-          if (_todos.isNotEmpty)
+          if (todos.isNotEmpty)
             PopupMenuButton<SortType>(
-              onSelected: _changeSort,
+              onSelected: changeSort,
               itemBuilder: (context) => SortType.values.map((type) {
                 return PopupMenuItem(
                   value: type,
                   child: Row(
                     children: [
-                      if (_sortType == type) const Icon(Icons.check, size: 18),
+                      if (sortType == type) const Icon(Icons.check, size: 18),
                       const SizedBox(width: 4),
                       Text(type.name),
                     ],
@@ -161,25 +89,25 @@ class _TodoListPageState extends State<TodoListPage> {
             ),
         ],
       ),
-      body: _todos.isEmpty
+      body: todos.isEmpty
           ? const Center(child: Text("No TODOs yet"))
           : Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: _todos.length,
+                itemCount: todos.length,
                 itemBuilder: (context, index) {
-                  final todo = _todos[index];
+                  final todo = todos[index];
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     decoration: BoxDecoration(
-                      color: _statusColor(todo.status),
+                      color: statusColor(todo.status),
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
                           color: Colors.black26,
                           blurRadius: 4,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -188,7 +116,7 @@ class _TodoListPageState extends State<TodoListPage> {
                         todo.title,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _textColor(),
+                          color: textColor(),
                         ),
                       ),
                       subtitle: Column(
@@ -198,13 +126,13 @@ class _TodoListPageState extends State<TodoListPage> {
                               todo.subtitle!.isNotEmpty)
                             Text(
                               todo.subtitle!,
-                              style: TextStyle(color: _textColor()),
+                              style: TextStyle(color: textColor()),
                             ),
                           if (todo.description != null &&
                               todo.description!.isNotEmpty)
                             Text(
                               todo.description!,
-                              style: TextStyle(color: _textColor()),
+                              style: TextStyle(color: textColor()),
                             ),
                           const SizedBox(height: 4),
                           Text(
@@ -239,11 +167,12 @@ class _TodoListPageState extends State<TodoListPage> {
                             value: todo.status,
                             onChanged: (newStatus) {
                               if (newStatus != null) {
-                                setState(() {
-                                  _todos[index].status = newStatus;
-                                  //_sortTodos();
-                                });
-                                _saveTodos();
+                                final updated = todo.copyWith(
+                                  status: newStatus,
+                                );
+                                ref
+                                    .read(todosProvider.notifier)
+                                    .updateTodo(index, updated);
                               }
                             },
                             items: TodoStatus.values
@@ -257,7 +186,7 @@ class _TodoListPageState extends State<TodoListPage> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit),
-                            onPressed: () => _editTodo(index),
+                            onPressed: () => editTodo(index, todo),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete),
@@ -272,12 +201,12 @@ class _TodoListPageState extends State<TodoListPage> {
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
-                                          Navigator.pop(context, false), // 取消
+                                          Navigator.pop(context, false),
                                       child: const Text('Cancel'),
                                     ),
                                     TextButton(
                                       onPressed: () =>
-                                          Navigator.pop(context, true), // 确认
+                                          Navigator.pop(context, true),
                                       child: const Text('Delete'),
                                     ),
                                   ],
@@ -285,7 +214,7 @@ class _TodoListPageState extends State<TodoListPage> {
                               );
 
                               if (confirm == true) {
-                                _deleteTodo(index);
+                                deleteTodo(index);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Task deleted!'),
@@ -302,7 +231,7 @@ class _TodoListPageState extends State<TodoListPage> {
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addTodo,
+        onPressed: addTodo,
         child: const Icon(Icons.add),
       ),
     );
