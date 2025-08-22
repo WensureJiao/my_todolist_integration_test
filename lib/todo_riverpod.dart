@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:math';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/todo.dart';
@@ -18,16 +17,21 @@ final todosProvider = StateNotifierProvider<TodoListNotifier, List<Todo>>((
 // 当前排序方式
 final sortProvider = StateProvider<SortType>((ref) => SortType.title);
 
-// Theme 状态
-final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
-  return ThemeNotifier();
-});
-
 // ------------------------ Notifiers ------------------------
 
 class TodoListNotifier extends StateNotifier<List<Todo>> {
   TodoListNotifier() : super([]) {
     loadTodos();
+  }
+  void addTodo(Todo todo) {
+    state = [...state, todo];
+    saveTodos();
+  }
+
+  void deleteTodoAt(int index) {
+    final list = [...state]..removeAt(index);
+    state = list;
+    saveTodos();
   }
 
   Future<void> loadTodos() async {
@@ -44,20 +48,9 @@ class TodoListNotifier extends StateNotifier<List<Todo>> {
     );
   }
 
-  void addTodo(Todo todo) {
-    state = [...state, todo];
-    saveTodos();
-  }
-
   void updateTodo(int index, Todo todo) {
     final list = [...state];
     list[index] = todo;
-    state = list;
-    saveTodos();
-  }
-
-  void deleteTodo(int index) {
-    final list = [...state]..removeAt(index);
     state = list;
     saveTodos();
   }
@@ -79,43 +72,13 @@ class TodoListNotifier extends StateNotifier<List<Todo>> {
     state = list;
   }
 
-  void addRandomTodos(int count) {
-    final rand = Random();
-    List<Todo> newTodos = List.generate(count, (i) {
-      String randomString(int length) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        return List.generate(
-          length,
-          (_) => chars[rand.nextInt(chars.length)],
-        ).join();
-      }
-
-      final randomLetters = randomString(5 + rand.nextInt(4));
-      return Todo(
-        title: "Task $randomLetters",
-        subtitle: "Auto generated",
-        description: "This is a random task",
-        status: TodoStatus.values[rand.nextInt(TodoStatus.values.length)],
-        startTime: DateTime.now(),
-        endTime: DateTime.now().add(const Duration(hours: 2)),
-      );
-    });
-    state = [...state, ...newTodos];
+  void addMultiple(List<Todo> todos) {
+    state = [...state, ...todos];
     saveTodos();
   }
 
   void cleanAll() {
     state = [];
     saveTodos();
-  }
-}
-
-// ------------------------ Theme ------------------------
-
-class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.light);
-
-  void toggleTheme() {
-    state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
   }
 }

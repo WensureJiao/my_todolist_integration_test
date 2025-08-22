@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/todo_list_page.dart';
 import 'pages/todo_setting_page.dart';
-import 'riverpod_main.dart';
+
+import 'theme_riverpod.dart';
 
 void main() {
   runApp(const ProviderScope(child: TodoApp()));
